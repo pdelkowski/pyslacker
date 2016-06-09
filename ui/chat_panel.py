@@ -18,8 +18,9 @@ class ChatPanel:
         self._start_offset = 2
         self._msg_count = 0
 
-        self._panel = curses.newwin(win_main_height-3, win_chat_width+2,
+        self._panel = curses.newwin(win_main_height-7, win_chat_width+2,
                                     2, win_channel_width+1)
+
         self._panel.box()
         self.draw_header()
         self._panel.refresh()

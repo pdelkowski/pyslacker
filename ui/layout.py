@@ -52,7 +52,8 @@ class UILayout:
 
         win_main_width = GlobalConfig.get('window_width')
         win_main_height = GlobalConfig.get('win_main_height')
-        # win_channel_width = GlobalConfig.get('win_channel_width')
+        win_channel_width = GlobalConfig.get('win_channel_width')
+        win_chat_width = win_main_width - win_channel_width - 4
 
         screen = stdscr.subwin(win_main_height, win_main_width, 0, 0)
         screen.box()
@@ -61,7 +62,15 @@ class UILayout:
         self.change_status('Connecting...')
         screen.refresh()
 
+        # chat input panel
+        self._input_panel = curses.newwin(3, win_chat_width+2,
+                                          win_main_height-5,
+                                          win_channel_width+1)
+
+        self._input_panel.box()
+        self._input_panel.refresh()
         chat_panel = ChatPanel(self.USERS)
+
         # chat_panel.append_msg(chat_msgs[0])
 
         api = SlackApi(ui=screen, users_table=self.USERS)
@@ -76,18 +85,22 @@ class UILayout:
         logger = AppLogger.get_logger()
         panel = channel_panel._panel
         panel.keypad(True)
+        x = 0
         x = panel.getch()
         curses.noecho()
+
+        input_panel_offset = 1
+        room_panel_active = True
         while True:
             if x == curses.KEY_DOWN:
                 logger.info("%"*30 + "KEY DOWN!!!!!!!!!")
                 channel_panel.active_room_down()
 
-            if x == curses.KEY_UP:
+            elif x == curses.KEY_UP:
                 logger.info("%"*30 + "KEY UP!!!!!!!!!")
                 channel_panel.active_room_up()
 
-            if x == curses.KEY_ENTER or x == 10 or x == 13:
+            elif x == curses.KEY_ENTER or x == 10 or x == 13:
                 logger.info("%"*30 + "KEY ENTER!!!!!!!!!")
                 # m = {'user': 'system', 'msg': 'hello world'}
                 active_room = channel_panel.get_active_room_obj()
@@ -95,9 +108,41 @@ class UILayout:
                 msgs = res_m['messages'][::-1]
                 chat_panel.append_msgs(msgs)
 
-            if x == 27:  # Esc or Alt
+            elif x == ord('\t') or x == 9:
+                logger.info("%"*30 + "TAB PRESSED !!!!!!!!!")
+                if room_panel_active is True:
+                    self._input_panel.move(1, input_panel_offset)
+                    self._input_panel.refresh()
+                    room_panel_active = False
+                else:
+                    a_room = channel_panel.get_active_room()
+                    channel_panel.set_active_room(a_room)
+                    room_panel_active = True
+
+            elif x == curses.KEY_BACKSPACE or x == 127:
+                logger.info("%"*30 + "BACKSPACE PRESSED !!!!!!!!!")
+
+                if input_panel_offset > 1:
+                    input_panel_offset -= 1
+                    self._input_panel.addstr(1, input_panel_offset, " ")
+                    self._input_panel.move(1, input_panel_offset)
+                    # self._input_panel.delch(1, input_panel_offset)
+                    self._input_panel.refresh()
+
+            elif (x <= 122 and x >= 65) or (x == ord(' ')) or x == ord('?'):
+                logger.info("%"*30 + "key PRESSED " + str(x) + " " +
+                            str(chr(x)) + " !!!!!!!!!")
+                input_panel_offset += 1
+                self._input_panel.move(1, input_panel_offset)
+                self._input_panel.addstr(1, input_panel_offset-1, chr(x))
+                self._input_panel.refresh()
+
+            elif x == 27:  # Esc or Alt
                 logger.info("%"*30 + "ESCAPE PRESSED !!!!!!!!!")
                 break
+
+            else:
+                logger.info("%"*30 + "unknown PRESSED " + str(x) + " !!!!!!!!!")
 
             logger.info("@"*100 + str(x))
             x = panel.getch()
