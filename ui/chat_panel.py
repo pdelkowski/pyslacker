@@ -41,7 +41,7 @@ class ChatPanel:
         self.logger.info("MSGSSSSSS" + str(msgs))
         counter = 0
         for msg in msgs:
-            if counter > 30:
+            if counter > 45:
                 break
             counter += 1
             self.append_msg(msg, False)
@@ -50,6 +50,11 @@ class ChatPanel:
 
     def clear_msgs(self):
         self._panel.erase()
+        self._start_offset = 2
+        self._msg_count = 0
+        self._panel.box()
+        self.draw_header()
+        self._panel.refresh()
 
     def draw_header(self):
         self._panel.addstr(1, 2, self._window_title)

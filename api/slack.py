@@ -136,7 +136,7 @@ class SlackApi:
     def get_rooms(self):
         return self._channels
 
-    def get_messages(self, room, count = 10):
+    def get_messages(self, room, count = 50):
         url = "https://slack.com/api/channels.history?token=" + str(self._token) + "&channel=" + str(room['id'] + "&count=" + str(count))
 
         r = self._request(self.GET, url)

@@ -102,11 +102,17 @@ class UILayout:
 
             elif x == curses.KEY_ENTER or x == 10 or x == 13:
                 logger.info("%"*30 + "KEY ENTER!!!!!!!!!")
+                chat_panel.clear_msgs()
                 # m = {'user': 'system', 'msg': 'hello world'}
                 active_room = channel_panel.get_active_room_obj()
                 res_m = api.get_messages(active_room)
                 msgs = res_m['messages'][::-1]
                 chat_panel.append_msgs(msgs)
+
+                # Move to input chat panel
+                self._input_panel.move(1, input_panel_offset)
+                self._input_panel.refresh()
+                room_panel_active = False
 
             elif x == ord('\t') or x == 9:
                 logger.info("%"*30 + "TAB PRESSED !!!!!!!!!")
