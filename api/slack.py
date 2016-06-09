@@ -1,18 +1,15 @@
-import sys
 import websocket
 import thread
 import threading
-import time
 import requests
-import json
-import logging
 from utils.logger import AppLogger
+
 
 class SlackApi:
     GET = 'get'
     POST = 'post'
 
-    def __init__(self, ui, token=None):
+    def __init__(self, ui, users_table, token=None):
         self.logger = AppLogger.get_logger()
         self.UI = ui
         self._token = 'xoxp-4098964602-4096552845-19491432598-2b27154c5c'
@@ -28,6 +25,11 @@ class SlackApi:
 
         self.logger.info('&'*100)
         self.logger.info(self.users)
+
+        # ADDING USERS !!!
+        # self.UI.USERS.add_many(self.users)
+        users_table.add_many(self.users)
+
         self.logger.info(self._channels)
         self.logger.info(self._profile)
         # raise Exception('qqqq')
@@ -90,7 +92,9 @@ class SlackApi:
         usrs = data['users']
         users = []
         for user in usrs:
-            u_dict = {'name': user['name'], 'full_name': user['profile']['real_name_normalized'], 'presence': user['presence'], 'id': user['id']}
+            u_dict = {'name': user['name'],
+            'full_name': user['profile']['real_name_normalized'],
+            'presence': user['presence'], 'id': user['id']}
             users.append(u_dict)
 
         return users
@@ -100,6 +104,9 @@ class SlackApi:
         return profile
 
     def _api_on_message(self, ws, message):
+        self.logger.info('INCOMING MESSAGE')
+        self.logger.info(str(dict(message)))
+
         # print '%%%%%%%%%%%% MESSAGE %%%%%%%%%%%%'
         # print message
         pass
@@ -128,3 +135,14 @@ class SlackApi:
 
     def get_rooms(self):
         return self._channels
+
+    def get_messages(self, room, count = 10):
+        url = "https://slack.com/api/channels.history?token=" + str(self._token) + "&channel=" + str(room['id'] + "&count=" + str(count))
+
+        r = self._request(self.GET, url)
+        if r.status_code != 200:
+            raise Exception("Could not connect to Slack HTTP API")
+        res = r
+        self.logger.info("REQUEST RESPONSE: channels.history")
+        self.logger.info(str(res.json()))
+        return res.json()
