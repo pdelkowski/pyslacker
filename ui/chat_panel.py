@@ -27,8 +27,14 @@ class ChatPanel:
 
     def append_msg(self, msg_obj, refresh=True):
         self._msg_count += 1
-        user_id = msg_obj['user'].encode('utf-8')
-        user = self.USERS.find_by_id(user_id)['name'].encode('utf-8')
+        if 'user' in msg_obj:
+            user_id = msg_obj['user'].encode('utf-8')
+            user = self.USERS.find_by_id(user_id)['name'].encode('utf-8')
+        elif 'username' in msg_obj:
+            user = msg_obj['username'].encode('utf-8')
+        else:
+            raise NameError("Cannot find user name in message")
+
         msg = msg_obj['text'].encode('utf-8')
         m_line = "[" + user + "] >> " + msg
 
@@ -46,6 +52,17 @@ class ChatPanel:
             counter += 1
             self.append_msg(msg, False)
 
+        self._panel.refresh()
+
+    def append_system_msg(self, msg):
+        self._msg_count += 1
+        self._panel.addstr(self.get_panel_curr_offset(), 2, msg)
+        self._panel.refresh()
+
+    def set_system_msg(self, msg):
+        self.clear_msgs()
+        self._msg_count += 1
+        self._panel.addstr(self.get_panel_curr_offset(), 2, msg)
         self._panel.refresh()
 
     def clear_msgs(self):

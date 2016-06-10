@@ -70,12 +70,13 @@ class UILayout:
         self._input_panel.box()
         self._input_panel.refresh()
         chat_panel = ChatPanel(self.USERS)
+        chat_panel.set_system_msg("Welcome, pick a channel and enjoy!")
 
         # chat_panel.append_msg(chat_msgs[0])
 
         api = SlackApi(ui=screen, users_table=self.USERS)
 
-        chat_rooms = api.get_rooms()
+        chat_rooms = api.get_rooms() + api.get_groups()
         logger.info(chat_rooms)
 
         channel_panel = RoomPanel(API=api)
@@ -90,6 +91,7 @@ class UILayout:
         curses.noecho()
 
         input_panel_offset = 1
+        input_msg = ""
         room_panel_active = True
         while True:
             if x == curses.KEY_DOWN:
@@ -101,18 +103,35 @@ class UILayout:
                 channel_panel.active_room_up()
 
             elif x == curses.KEY_ENTER or x == 10 or x == 13:
-                logger.info("%"*30 + "KEY ENTER!!!!!!!!!")
-                chat_panel.clear_msgs()
-                # m = {'user': 'system', 'msg': 'hello world'}
-                active_room = channel_panel.get_active_room_obj()
-                res_m = api.get_messages(active_room)
-                msgs = res_m['messages'][::-1]
-                chat_panel.append_msgs(msgs)
+                if room_panel_active is True:
+                    logger.info("%"*30 + "KEY ENTER!!!!!!!!!")
+                    chat_panel.clear_msgs()
+                    chat_panel.set_system_msg("Loading...")
+                    active_room = channel_panel.get_active_room_obj()
+                    res_m = api.get_messages(active_room)
+                    msgs = res_m['messages'][::-1]
+                    chat_panel.clear_msgs()
+                    chat_panel.append_msgs(msgs)
 
-                # Move to input chat panel
-                self._input_panel.move(1, input_panel_offset)
-                self._input_panel.refresh()
-                room_panel_active = False
+                    # Move to input chat panel
+                    self._input_panel.move(1, input_panel_offset)
+                    self._input_panel.refresh()
+                    room_panel_active = False
+                else:
+                    curr_room = channel_panel.get_active_room_obj()
+                    api.send_message(curr_room, input_msg)
+                    curr_user = api.get_identity()
+                    msg_to_send = {'user': curr_user['user_id'], 'text': input_msg}
+                    chat_panel.append_msg(msg_to_send)
+                    input_msg = ""
+
+                    # remove input box text
+                    while input_panel_offset > 1:
+                        input_panel_offset -= 1
+                        self._input_panel.addstr(1, input_panel_offset, " ")
+
+                    self._input_panel.move(1, input_panel_offset)
+                    self._input_panel.refresh()
 
             elif x == ord('\t') or x == 9:
                 logger.info("%"*30 + "TAB PRESSED !!!!!!!!!")
@@ -131,6 +150,7 @@ class UILayout:
                 if input_panel_offset > 1:
                     input_panel_offset -= 1
                     self._input_panel.addstr(1, input_panel_offset, " ")
+                    input_msg = input_msg[:-1]
                     self._input_panel.move(1, input_panel_offset)
                     # self._input_panel.delch(1, input_panel_offset)
                     self._input_panel.refresh()
@@ -141,6 +161,7 @@ class UILayout:
                 input_panel_offset += 1
                 self._input_panel.move(1, input_panel_offset)
                 self._input_panel.addstr(1, input_panel_offset-1, chr(x))
+                input_msg += chr(x)
                 self._input_panel.refresh()
 
             elif x == 27:  # Esc or Alt

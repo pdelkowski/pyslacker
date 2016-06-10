@@ -49,7 +49,16 @@ class RoomPanel:
     def append_room(self, chnl):
         self._room_count += 1
         self._rooms.append(chnl)
-        self._panel.addstr(self.get_panel_curr_offset(), 2, "# "+chnl['name'])
+
+        prefix = "#"
+        if chnl['type'] == 'channel':
+            prefix += "c "
+        elif chnl['type'] == 'group':
+            prefix += "g "
+        else:
+            prefix += ""
+
+        self._panel.addstr(self.get_panel_curr_offset(), 2, prefix+chnl['name'])
 
     def set_active_room(self, idx):
         offset = self.get_panel_start_offset() + idx
