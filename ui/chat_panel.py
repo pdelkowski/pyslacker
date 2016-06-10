@@ -1,4 +1,5 @@
 import curses
+import datetime
 
 from utils.config import GlobalConfig
 from utils.logger import AppLogger
@@ -36,7 +37,14 @@ class ChatPanel:
             raise NameError("Cannot find user name in message")
 
         msg = msg_obj['text'].encode('utf-8')
-        m_line = "[" + user + "] >> " + msg
+
+        m_line = ""
+
+        if 'ts' in msg_obj:
+            dt = datetime.datetime.fromtimestamp( int(msg_obj['ts'][:-7])).strftime('%Y-%m-%d %H:%M:%S')
+            m_line += "[" + dt + "] "
+
+        m_line += user + " >> " + msg
 
         self._panel.addstr(self.get_panel_curr_offset(), 1, m_line)
 
