@@ -4,9 +4,11 @@ import traceback
 from api.slack import SlackApi
 from utils.logger import AppLogger
 from utils.config import GlobalConfig
+from utils.text_input import TextInputHelper
 from room_panel import RoomPanel
 from chat_panel import ChatPanel
 from users import UserProfile
+from keyboard_controller import UniqueController
 
 
 class UILayout:
@@ -42,9 +44,9 @@ class UILayout:
             curses.echo()
             curses.nocbreak()
             curses.endwin()
-            traceback.print_exc()
-            self.logger.critical("="*160)
-            self.logger.critical(str(traceback.print_exc(file=sys.stdout)))
+            # traceback.print_exc()
+            # self.logger.critical("="*160)
+            # self.logger.critical(str(traceback.print_exc(file=sys.stdout)))
 
     def main(self, stdscr):
         global screen
@@ -87,22 +89,27 @@ class UILayout:
         panel = channel_panel._panel
         panel.keypad(True)
         x = 0
-        x = panel.getch()
+        # x = panel.getch()
         curses.noecho()
+
+        controller = UniqueController(channel_panel, chat_panel, self._input_panel, api)
+        controller.start()
 
         input_panel_offset = 1
         input_msg = ""
         room_panel_active = True
+        text_helper = TextInputHelper()
+
         while True:
-            if x == curses.KEY_DOWN:
+            if text_helper.is_key_down(x):
                 logger.info("%"*30 + "KEY DOWN!!!!!!!!!")
                 channel_panel.active_room_down()
 
-            elif x == curses.KEY_UP:
+            elif text_helper.is_key_up(x):
                 logger.info("%"*30 + "KEY UP!!!!!!!!!")
                 channel_panel.active_room_up()
 
-            elif x == curses.KEY_ENTER or x == 10 or x == 13:
+            elif text_helper.is_enter(x):
                 if room_panel_active is True:
                     logger.info("%"*30 + "KEY ENTER!!!!!!!!!")
                     chat_panel.clear_msgs()
@@ -133,7 +140,7 @@ class UILayout:
                     self._input_panel.move(1, input_panel_offset)
                     self._input_panel.refresh()
 
-            elif x == ord('\t') or x == 9:
+            elif text_helper.is_tab(x):
                 logger.info("%"*30 + "TAB PRESSED !!!!!!!!!")
                 if room_panel_active is True:
                     self._input_panel.move(1, input_panel_offset)
@@ -144,7 +151,7 @@ class UILayout:
                     channel_panel.set_active_room(a_room)
                     room_panel_active = True
 
-            elif x == curses.KEY_BACKSPACE or x == 127:
+            elif text_helper.is_backspace(x):
                 logger.info("%"*30 + "BACKSPACE PRESSED !!!!!!!!!")
 
                 if input_panel_offset > 1:
@@ -155,7 +162,7 @@ class UILayout:
                     # self._input_panel.delch(1, input_panel_offset)
                     self._input_panel.refresh()
 
-            elif (x <= 122 and x >= 65) or (x == ord(' ')) or x == ord('?'):
+            elif text_helper.is_input_char(x):
                 logger.info("%"*30 + "key PRESSED " + str(x) + " " +
                             str(chr(x)) + " !!!!!!!!!")
                 input_panel_offset += 1
@@ -164,7 +171,7 @@ class UILayout:
                 input_msg += chr(x)
                 self._input_panel.refresh()
 
-            elif x == 27:  # Esc or Alt
+            elif text_helper.is_esc(x):
                 logger.info("%"*30 + "ESCAPE PRESSED !!!!!!!!!")
                 break
 
@@ -190,6 +197,7 @@ class UILayout:
         curses.echo()
         curses.nocbreak()
         curses.endwin()
-        traceback.print_exc()
-        self.logger.critical("="*160)
-        self.logger.critical(str(traceback.print_exc()))
+        sys.exit(0)
+        # traceback.print_exc()
+        # self.logger.critical("="*160)
+        # self.logger.critical(str(traceback.print_exc()))
