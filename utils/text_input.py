@@ -2,7 +2,7 @@ import curses
 
 class TextInputHelper:
     def __init__(self):
-        input_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+-=[]{};':\",./<>? "
+        input_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+-=[]{};':\",./<>?\| "
         self.chars = {}
 
         self._convert_input_chars(input_chars)

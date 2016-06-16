@@ -24,7 +24,7 @@ class ChatPanel:
 
         self._panel.box()
         self.draw_header()
-        self._panel.refresh()
+        self.set_system_msg("Welcome, pick a channel and enjoy!")
 
     def append_msg(self, msg_obj, refresh=True):
         self._msg_count += 1

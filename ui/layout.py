@@ -2,18 +2,19 @@ import sys
 import curses
 import traceback
 from api.slack import SlackApi
-from utils.logger import AppLogger
+# from utils.logger import AppLogger
 from utils.config import GlobalConfig
-from utils.text_input import TextInputHelper
 from room_panel import RoomPanel
 from chat_panel import ChatPanel
+from inputbox_panel import InputboxPanel
 from users import UserProfile
 from keyboard_controller import UniqueController
+from events.event_queue import ApiEvent, ChatEvent
+from events.event_worker import ApiWorker, ChatWorker
 
 
 class UILayout:
     def __init__(self):
-        self.logger = AppLogger.get_logger()
         self.USERS = UserProfile()
 
         try:
@@ -44,153 +45,60 @@ class UILayout:
             curses.echo()
             curses.nocbreak()
             curses.endwin()
-            # traceback.print_exc()
+            traceback.print_exc()
             # self.logger.critical("="*160)
             # self.logger.critical(str(traceback.print_exc(file=sys.stdout)))
 
     def main(self, stdscr):
         global screen
-        logger = AppLogger.get_logger()
+        # logger = AppLogger.get_logger()
 
         win_main_width = GlobalConfig.get('window_width')
         win_main_height = GlobalConfig.get('win_main_height')
-        win_channel_width = GlobalConfig.get('win_channel_width')
-        win_chat_width = win_main_width - win_channel_width - 4
 
         screen = stdscr.subwin(win_main_height, win_main_width, 0, 0)
         screen.box()
         screen.addstr(1, 2, "Hello stranger")
         # screen.hline(2, 1, curses.ACS_HLINE, win_main_width-2)
-        self.change_status('Connecting...')
+        # self.change_status('Connecting...')
         screen.refresh()
 
-        # chat input panel
-        self._input_panel = curses.newwin(3, win_chat_width+2,
-                                          win_main_height-5,
-                                          win_channel_width+1)
 
-        self._input_panel.box()
-        self._input_panel.refresh()
+        # Inputbox panel
+        inputbox_panel = InputboxPanel()
+
+        # Chat panel
         chat_panel = ChatPanel(self.USERS)
-        chat_panel.set_system_msg("Welcome, pick a channel and enjoy!")
 
-        # chat_panel.append_msg(chat_msgs[0])
-
+        # API
         api = SlackApi(ui=screen, users_table=self.USERS)
 
-        chat_rooms = api.get_rooms() + api.get_groups()
-        logger.info(chat_rooms)
-
+        # Room panel
         channel_panel = RoomPanel(API=api)
+        chat_rooms = api.get_rooms() + api.get_groups()
         channel_panel.set_channels(chat_rooms)
 
-        # control arrow keys to change rooms
-        logger = AppLogger.get_logger()
-        panel = channel_panel._panel
-        panel.keypad(True)
-        x = 0
-        # x = panel.getch()
-        curses.noecho()
+        # Event stuff
+        event_chat = ChatEvent()
+        event_chat_worker = ChatWorker(event_chat, chat_panel, inputbox_panel)
+        event_chat_worker.start()
 
-        controller = UniqueController(channel_panel, chat_panel, self._input_panel, api)
+        event_api = ApiEvent()
+        event_api_worker = ApiWorker(event_api, api, event_chat)
+        event_api_worker.start()
+
+        # Keyboard controller
+        controller = UniqueController(channel_panel, chat_panel,
+                                      inputbox_panel._panel, event_api)
         controller.start()
-
-        input_panel_offset = 1
-        input_msg = ""
-        room_panel_active = True
-        text_helper = TextInputHelper()
-
-        while True:
-            if text_helper.is_key_down(x):
-                logger.info("%"*30 + "KEY DOWN!!!!!!!!!")
-                channel_panel.active_room_down()
-
-            elif text_helper.is_key_up(x):
-                logger.info("%"*30 + "KEY UP!!!!!!!!!")
-                channel_panel.active_room_up()
-
-            elif text_helper.is_enter(x):
-                if room_panel_active is True:
-                    logger.info("%"*30 + "KEY ENTER!!!!!!!!!")
-                    chat_panel.clear_msgs()
-                    chat_panel.set_system_msg("Loading...")
-                    active_room = channel_panel.get_active_room_obj()
-                    res_m = api.get_messages(active_room)
-                    msgs = res_m['messages'][::-1]
-                    chat_panel.clear_msgs()
-                    chat_panel.append_msgs(msgs)
-
-                    # Move to input chat panel
-                    self._input_panel.move(1, input_panel_offset)
-                    self._input_panel.refresh()
-                    room_panel_active = False
-                else:
-                    curr_room = channel_panel.get_active_room_obj()
-                    api.send_message(curr_room, input_msg)
-                    curr_user = api.get_identity()
-                    msg_to_send = {'user': curr_user['user_id'], 'text': input_msg}
-                    chat_panel.append_msg(msg_to_send)
-                    input_msg = ""
-
-                    # remove input box text
-                    while input_panel_offset > 1:
-                        input_panel_offset -= 1
-                        self._input_panel.addstr(1, input_panel_offset, " ")
-
-                    self._input_panel.move(1, input_panel_offset)
-                    self._input_panel.refresh()
-
-            elif text_helper.is_tab(x):
-                logger.info("%"*30 + "TAB PRESSED !!!!!!!!!")
-                if room_panel_active is True:
-                    self._input_panel.move(1, input_panel_offset)
-                    self._input_panel.refresh()
-                    room_panel_active = False
-                else:
-                    a_room = channel_panel.get_active_room()
-                    channel_panel.set_active_room(a_room)
-                    room_panel_active = True
-
-            elif text_helper.is_backspace(x):
-                logger.info("%"*30 + "BACKSPACE PRESSED !!!!!!!!!")
-
-                if input_panel_offset > 1:
-                    input_panel_offset -= 1
-                    self._input_panel.addstr(1, input_panel_offset, " ")
-                    input_msg = input_msg[:-1]
-                    self._input_panel.move(1, input_panel_offset)
-                    # self._input_panel.delch(1, input_panel_offset)
-                    self._input_panel.refresh()
-
-            elif text_helper.is_input_char(x):
-                logger.info("%"*30 + "key PRESSED " + str(x) + " " +
-                            str(chr(x)) + " !!!!!!!!!")
-                input_panel_offset += 1
-                self._input_panel.move(1, input_panel_offset)
-                self._input_panel.addstr(1, input_panel_offset-1, chr(x))
-                input_msg += chr(x)
-                self._input_panel.refresh()
-
-            elif text_helper.is_esc(x):
-                logger.info("%"*30 + "ESCAPE PRESSED !!!!!!!!!")
-                break
-
-            else:
-                logger.info("%"*30 + "unknown PRESSED " + str(x) + " !!!!!!!!!")
-
-            logger.info("@"*100 + str(x))
-            x = panel.getch()
-
-        # end of control
 
     def change_status(self, state):
         global screen
 
-        self.logger.info("="*150)
-        self.logger.info("Chaning status: "+str(state))
         state_position = GlobalConfig.get('window_width') - 25
         screen.addstr(1, state_position, ' '*22)
         screen.addstr(1, state_position, "Status: "+state)
+        screen.refresh()
 
     def cleanup(self):
         self._stdscr.keypad(0)
@@ -198,6 +106,4 @@ class UILayout:
         curses.nocbreak()
         curses.endwin()
         sys.exit(0)
-        # traceback.print_exc()
-        # self.logger.critical("="*160)
-        # self.logger.critical(str(traceback.print_exc()))
+        traceback.print_exc()
