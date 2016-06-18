@@ -166,7 +166,7 @@ class SlackApi:
     def get_groups(self):
         return self._groups
 
-    def get_messages(self, room, count=45):
+    def get_messages(self, room, count=200):
         url_base = "https://slack.com/api/"
 
         if room['type'] == 'channel':

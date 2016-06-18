@@ -21,6 +21,12 @@ class EventWorker():
 
 
 class ApiWorker(EventWorker):
+    """
+    Class reponsibilities
+    1. Sends msgs via actual Slack API (HTTP requests)
+    2. Retrieves messages from particual channel/group/ims and pushes them to
+    ChatEvent queue
+    """
     def __init__(self, event_queue, model, chat_queue):
         EventWorker.__init__(self, event_queue, model)
         self.chat_event = chat_queue
@@ -46,6 +52,10 @@ class ApiWorker(EventWorker):
 
 
 class ChatWorker(EventWorker):
+    """
+    Class reponsibilities
+    1. Appends msgs from ChatEvent queue to panel
+    """
     def __init__(self, event_queue, model, inputbox_panel):
         EventWorker.__init__(self, event_queue, model)
         self.inputbox_panel = inputbox_panel
@@ -58,7 +68,7 @@ class ChatWorker(EventWorker):
             if m['type'] == 'append_msgs':
                 self.logger.debug("ChatWorker appending msgs: " + str(m))
                 msgs = m['msg']['content']['messages']
-                self.model.append_msgs(msgs[::-1])
+                self.model.set_msgs(msgs[::-1])
 
                 self.inputbox_panel._panel.move(1, 1)
                 self.inputbox_panel._panel.refresh()

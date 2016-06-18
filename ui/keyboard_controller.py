@@ -69,9 +69,7 @@ class ChatController:
             curr_room = self.room_panel.get_active_room_obj()
             # self.api.send_message(curr_room, self.input_msg)
             self.api.send_msg(curr_room, self.input_msg)
-            curr_user = self.api.get_identity()
-            msg_to_send = {'user': curr_user['user_id'], 'text': self.input_msg}
-            self.panel.append_msg(msg_to_send)
+            # Add label to panel
             self.input_msg = ""
 
             # remove input box text
