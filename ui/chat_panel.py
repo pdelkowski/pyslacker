@@ -20,6 +20,7 @@ class ChatPanel:
 
         self._window = {'width': win_chat_width+2, 'height': win_main_height-7}
         self.height_limit = self._window['height'] - self._get_panel_start_offset() - 1
+        self._line_limit = self._window['width']
 
 
         # Number of posts in panel
@@ -126,23 +127,28 @@ class ChatPanel:
 
     def _write_msg(self, l):
         self._panel_lines += 1
+        self.logger.debug("_write_msg: line: "+str(self._panel_lines)+" str: "+str(l))
         self._panel.addstr(self._get_panel_curr_offset(), 1, l)
 
     def _write_msgs(self, lines):
         for l in lines:
             self._write_msg(l)
+        # @TODO move .box() somewhere else ?
+        self._panel.box()
 
     def _clean_panel(self):
+        line_limit = self._line_limit
+        self.logger.debug("_clean_panel")
         while self._panel_lines > 0:
-            for c in range(1, self._window['width']-1):
-                self._panel.addstr(self._get_panel_curr_offset(), 1, " ")
+            for c in range(1, line_limit-1):
+                self._panel.addstr(self._get_panel_curr_offset(), c, " ")
             self._panel_lines -= 1
-        self.logger.debug("_clean_panel self msgs: " + str(self._msgs))
+        self._panel.move(self._get_panel_curr_offset(), 1)
 
     def _calculate_post_properties(self, s):
         words = s.split()
         self.logger.debug("_calculate_post_properties: " + str(words))
-        line_limit = self._window['width']-1
+        line_limit = self._line_limit
         list_idx = 0
         words_list = []
 
@@ -154,7 +160,7 @@ class ChatPanel:
 
             if len(words_list) <= 0:
                 words_list.append(w)
-            elif len(words_list[list_idx]+w) <= line_limit:
+            elif len(words_list[list_idx]+" "+w) <= line_limit:
                 words_list[list_idx] += " " + w
             else:
                 words_list.append(w)
@@ -165,7 +171,7 @@ class ChatPanel:
     def _handle_scroll(self):
         scroll_limit = self.height_limit
         self.logger.debug("#panel lines" + str(self._panel_lines) + " :: scroll limit " + str(scroll_limit))
-        if self._panel_lines >= scroll_limit:
+        if self._panel_lines+1 >= scroll_limit:
             self._rewrite_msgs()
 
     def _rewrite_msgs(self):
@@ -187,22 +193,21 @@ class ChatPanel:
         """ How many visible messages can we write to panel box """
         avail_lines = 0
         avail_msgs = 0
-        rev_msgs = self._msgs.reverse()
-        self.logger.debug("#rev_msgs: " + str(self._msgs))
+        rev_msgs = self._msgs[::-1] # reverse list
 
         for msg in rev_msgs:
             if avail_lines + msg['lines'] <= self.height_limit:
                 avail_lines += msg['lines']
                 avail_msgs += 1
 
-        return self._msgs[-avail_msgs:]
+        return self._msgs[-avail_msgs+1:]
 
     def _get_first_visible_msg_lines(self, msgs):
         """ How many lines of 'top' message will be visible """
-        last_msgs = msgs.pop(0)
+        msgs.pop(0)
         last_msgs_lines = 0
 
-        for m in last_msgs:
+        for m in msgs:
             last_msgs_lines += m['lines']
 
         return self.height_limit - last_msgs_lines
