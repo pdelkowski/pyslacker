@@ -1,9 +1,12 @@
 import curses
 
+
 class TextInputHelper:
     def __init__(self):
         input_chars = "0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+-=[]{};':\",./<>?\| "
+
         self.chars = {}
+        self.emoticons = {":slightly_smiling_face:": ":)"}
 
         self._convert_input_chars(input_chars)
 
@@ -12,10 +15,16 @@ class TextInputHelper:
             if not (ord(c) in self.chars):
                 self.chars[ord(c)] = c
 
+    def emoticon_mapping(self, emo):
+        if emo in self.emoticons:
+            return self.emoticons[emo]
+        else:
+            return emo
+
     def load_extra_charset(self, charset):
         for c in list(charset):
             if ord(c) in self.chars:
-                raise "There is already char in base charset with the integer number same as char `" + str(c) + "`" 
+                raise "There is already char in base charset with the integer number same as char `" + str(c) + "`"
             else:
                 self.chars[ord(c)] = c
 

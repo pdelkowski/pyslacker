@@ -3,6 +3,7 @@ import datetime
 
 from utils.config import GlobalConfig
 from utils.logger import AppLogger
+from utils.text_input import TextInputHelper
 
 
 class ChatPanel:
@@ -146,6 +147,7 @@ class ChatPanel:
         self._panel.move(self._get_panel_curr_offset(), 1)
 
     def _calculate_post_properties(self, s):
+        text_helper = TextInputHelper()
         words = s.split()
         self.logger.debug("_calculate_post_properties: " + str(words))
         line_limit = self._line_limit
@@ -153,6 +155,9 @@ class ChatPanel:
         words_list = []
 
         for w in words:
+            # @TODO make it to not check every word !!!
+            w = text_helper.emoticon_mapping(w)
+
             # @TODO what if one word is longer that line ?
             if len(w) >= line_limit:
                 w = w[0:line_limit-4]
