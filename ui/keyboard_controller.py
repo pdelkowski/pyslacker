@@ -3,6 +3,7 @@ import curses
 
 from utils.logger import AppLogger
 from utils.text_input import TextInputHelper
+from models.message import Message
 
 
 class RoomController:
@@ -67,8 +68,10 @@ class ChatController:
                 self.input_panel.refresh()
         elif text_helper.is_enter(key_pressed):
             curr_room = self.room_panel.get_active_room_obj()
+            message = Message(curr_room.hash_id, self.input_msg)
             # self.api.send_message(curr_room, self.input_msg)
-            self.api.send_msg(curr_room, self.input_msg)
+            # self.api.send_msg(curr_room, self.input_msg)
+            self.api.send_msg(message)
             # Add label to panel
             self.input_msg = ""
 

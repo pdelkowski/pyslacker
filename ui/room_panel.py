@@ -5,9 +5,8 @@ from utils.config import GlobalConfig
 
 
 class RoomPanel:
-    def __init__(self, API, title="AVAILABLE CHANNELS"):
+    def __init__(self, title="AVAILABLE CHANNELS"):
         self.logger = AppLogger.get_logger()
-        self._api = API
 
         win_main_height = GlobalConfig.get('win_main_height')
         win_channel_width = GlobalConfig.get('win_channel_width')
@@ -51,14 +50,15 @@ class RoomPanel:
         self._rooms.append(chnl)
 
         prefix = "#"
-        if chnl['type'] == 'channel':
+        if chnl.room_type == 'channel':
             prefix += "c "
-        elif chnl['type'] == 'group':
+        elif chnl.room_type == 'group':
             prefix += "g "
         else:
             prefix += ""
 
-        self._panel.addstr(self.get_panel_curr_offset(), 2, prefix+chnl['name'])
+        chnl_label = prefix+chnl.name
+        self._panel.addstr(self.get_panel_curr_offset(), 2, chnl_label)
 
     def set_active_room(self, idx):
         offset = self.get_panel_start_offset() + idx

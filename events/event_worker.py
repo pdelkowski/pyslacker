@@ -33,19 +33,21 @@ class ApiWorker(EventWorker):
 
     def msg_sender(self):
         self.logger.debug("ApiWorker started")
+
         while True:
             m = self.queue.retrieve()
 
             if m['type'] == 'send_msg':
-                self.logger.debug("ApiWorker sending msg: " + str(m))
-                self.model.send_message(m['msg']['room_id'],
-                                        m['msg']['content'])
+                self.logger.debug("ApiWorker msg_sender: " + str(m))
+                message = m['data']
+                self.model.send_message(message)
 
             elif m['type'] == 'retrieve_history':
-                self.logger.debug("ApiWorker retrieving room history")
-                msgs = self.model.get_messages(m['msg']['room_id'])
-                self.logger.debug("ApiWorker retrieved: " + str(msgs))
-                self.chat_event.append_msgs(msgs)
+                self.logger.debug("ApiWorker retrieve_history")
+                room = m['data']
+                msgs = self.model.get_messages(room)
+                self.logger.debug("ApiWorker retrieve_history result"+str(msgs))
+                self.chat_event.set_msgs(msgs)
 
     def _worker_def(self):
         self.msg_sender()
@@ -67,7 +69,19 @@ class ChatWorker(EventWorker):
 
             if m['type'] == 'append_msgs':
                 self.logger.debug("ChatWorker appending msgs: " + str(m))
-                msgs = m['msg']['content']['messages']
+
+                msgs = m['data']
+                if isinstance(msgs, (list, tuple)):  # Check if list
+                    self.model.set_msgs(msgs[::-1])
+                else:
+                    self.model.append_msg(msgs)
+
+                self.inputbox_panel._panel.move(1, 1)
+                self.inputbox_panel._panel.refresh()
+
+            if m['type'] == 'set_msgs':
+                self.logger.debug("ChatWorker set msgs: " + str(m))
+                msgs = m['data']
                 self.model.set_msgs(msgs[::-1])
 
                 self.inputbox_panel._panel.move(1, 1)

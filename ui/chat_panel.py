@@ -4,6 +4,8 @@ import datetime
 from utils.config import GlobalConfig
 from utils.logger import AppLogger
 from utils.text_input import TextInputHelper
+from models.user import UserManager
+from models.exception import UserNotFoundError
 
 
 class ChatPanel:
@@ -23,7 +25,6 @@ class ChatPanel:
         self.height_limit = self._window['height'] - self._get_panel_start_offset() - 1
         self._line_limit = self._window['width']
 
-
         # Number of posts in panel
         self._msg_count = 0
 
@@ -41,26 +42,23 @@ class ChatPanel:
         self._draw_header()
         self.set_system_msg("Welcome, pick a channel and enjoy!")
 
-    def append_msg(self, msg_obj, refresh=True):
-        if 'user' in msg_obj:
-            user_id = msg_obj['user'].encode('utf-8')
-            user = self.USERS.find_by_id(user_id)['name'].encode('utf-8')
-        elif 'username' in msg_obj:
-            user = msg_obj['username'].encode('utf-8')
-        else:
-            raise NameError("Cannot find user name in message")
-
-        msg = msg_obj['text'].encode('utf-8')
+    def append_msg(self, message, refresh=True):
+        # user =self.USERS.find_by_id(message.user.name)['name'].encode('utf-8')
+        user = UserManager.find(message.user.hash_id)
+        if user is None:
+            raise UserNotFoundError(message.user.hash_id)
+        # msg = msg_obj['text'].encode('utf-8')
+        msg = message.text.encode('utf-8')
 
         m_line = ""
 
-        if 'ts' in msg_obj:
-            msg_ts = int(msg_obj['ts'][:-7])
+        if message.ts is not None:
+            msg_ts = int(message.ts[:-7])
             dt = datetime.datetime.fromtimestamp(msg_ts)
             dt = dt.strftime('%Y-%m-%d %H:%M:%S')
             m_line += "[" + dt + "] "
 
-        m_line += user + " >> " + msg
+        m_line += user.name + " >> " + msg
 
         self._add_msg(m_line)
 

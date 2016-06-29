@@ -8,10 +8,10 @@ class EventQueue():
         self.logger = AppLogger.get_logger()
         self.queue = Queue()
 
-    def add(self, etype, emsg):
-        self.logger.debug("Add to queue: " + str(etype) + " :: " + str(emsg))
-        msg = {'type': etype, 'msg': emsg}
-        self.queue.put(msg)
+    def add(self, data_type, data):
+        self.logger.debug("Add to queue: "+str(data_type)+" :: "+str(data))
+        obj = {'type': data_type, 'data': data}
+        self.queue.put(obj)
 
     def retrieve(self):
         self.logger.debug("Retrieving from queue")
@@ -21,21 +21,24 @@ class EventQueue():
 
 
 class ApiEvent(EventQueue):
-    def send_msg(self, mroom, mcontent):
-        self.logger.debug("ApiEvent send msg: " + str(mroom) + " :: " + str(mcontent))
+    def send_msg(self, message):
+        self.logger.debug("ApiEvent send_msg: "+str(message))
         mtype = 'send_msg'
-        m = {'room_id': mroom, 'content': mcontent}
-        self.add(mtype, m)
+        self.add(mtype, message)
 
     def retrieve_room_history(self, mroom):
         self.logger.debug("ApiEvent get room history: " + str(mroom))
         mtype = 'retrieve_history'
-        m = {'room_id': mroom}
-        self.add(mtype, m)
+        self.add(mtype, mroom)
+
 
 class ChatEvent(EventQueue):
     def append_msgs(self, msgs):
         self.logger.debug("ChatEvent append msgs: " + str(msgs))
         mtype = 'append_msgs'
-        m = {'content': msgs}
-        self.add(mtype, m)
+        self.add(mtype, msgs)
+
+    def set_msgs(self, msgs):
+        self.logger.debug("ChatEvent set msgs: " + str(msgs))
+        mtype = 'set_msgs'
+        self.add(mtype, msgs)

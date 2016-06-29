@@ -11,6 +11,7 @@ from users import UserProfile
 from keyboard_controller import UniqueController
 from events.event_queue import ApiEvent, ChatEvent
 from events.event_worker import ApiWorker, ChatWorker
+from models.room import RoomManager
 
 
 class UILayout:
@@ -63,27 +64,28 @@ class UILayout:
         # self.change_status('Connecting...')
         screen.refresh()
 
-
         # Inputbox panel
         inputbox_panel = InputboxPanel()
 
         # Chat panel
         chat_panel = ChatPanel(self.USERS)
 
+        # Queues
+        event_chat = ChatEvent()
+        event_api = ApiEvent()
+
         # API
-        api = SlackApi(ui=screen, users_table=self.USERS)
+        api = SlackApi(ui=screen, users_table=self.USERS, chat_queue=event_chat)
 
         # Room panel
-        channel_panel = RoomPanel(API=api)
-        chat_rooms = api.get_rooms() + api.get_groups()
+        channel_panel = RoomPanel()
+        chat_rooms = RoomManager.all()  # api.get_rooms() + api.get_groups()
         channel_panel.set_channels(chat_rooms)
 
         # Event stuff
-        event_chat = ChatEvent()
         event_chat_worker = ChatWorker(event_chat, chat_panel, inputbox_panel)
         event_chat_worker.start()
 
-        event_api = ApiEvent()
         event_api_worker = ApiWorker(event_api, api, event_chat)
         event_api_worker.start()
 
